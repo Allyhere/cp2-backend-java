@@ -1,4 +1,4 @@
-# Quarkus demo: Hibernate Reactive and RESTEasy Reactive
+# cp2-backend-java
 
 This is a minimal CRUD service exposing a couple of endpoints over REST,
 with a front-end based on Angular so you can play with it from your browser.
@@ -43,12 +43,12 @@ live coding. To try this out:
 
 In this mode you can make changes to the code and have the changes immediately applied, by just refreshing your browser.
 
-Dev Mode automatically starts a Docker container with a Postgres database. This feature is called ["Dev Services."](https://quarkus.io/guides/dev-services)
+**Note:** By default, if no database is configured, Quarkus starts a Docker container with a Postgres database (Dev Services). However, since we have explicitly configured the external database in `src/main/resources/application.properties`, Dev Services will be disabled and the application will connect to the specified external instance.
 
-To access the database from the terminal, run:
+To access the external database from the terminal (if running via Docker):
 
 ```sh
-docker exec -it <container-name> psql -U quarkus
+docker exec -it postgres-app psql -U appuser -d appdb
 ```
 
     Hot reload works even when modifying your JPA entities.
@@ -63,15 +63,21 @@ First compile it:
 
 > ./mvnw package
 
-Next, make sure you have a PostgreSQL database running. In production, Quarkus does not start a container for you like it does in Dev Mode.
-To set up a PostgreSQL database with Docker:
+Next, make sure you have your external PostgreSQL database running (e.g., in a VM) with the following configuration:
 
-> docker run -it --rm=true --name quarkus_test -e POSTGRES_USER=quarkus_test -e POSTGRES_PASSWORD=quarkus_test -e POSTGRES_DB=quarkus_test -p 5432:5432 postgres:13.3
+- **Host**: `127.0.0.1`
+- **Port**: `5432`
+- **Database**: `appdb`
+- **User**: `appuser`
+- **Password**: `apppassword`
 
-Connection properties for the Agroal datasource are defined in the standard Quarkus configuration file,
-`src/main/resources/application.properties`.
+If you want to run a local PostgreSQL instance with these credentials using Docker, you can use:
 
-Then run it:
+> docker run -it --rm=true --name postgres-app -e POSTGRES_USER=appuser -e POSTGRES_PASSWORD=apppassword -e POSTGRES_DB=appdb -p 5432:5432 postgres:15
+
+Connection properties are defined in `src/main/resources/application.properties`.
+
+Then run the application:
 
 > java -jar ./target/quarkus-app/quarkus-run.jar
 
@@ -111,16 +117,27 @@ Navigate to:
 
 <http://localhost:8080/index.html>
 
-Have fun, and join the team of contributors!
+## Testing the Endpoints
 
-## Running the demo in Kubernetes
+You can test the REST endpoints using `curl`:
 
-This section provides extra information for running both the database and the demo on Kubernetes.
-As well as running the DB on Kubernetes, a service needs to be exposed for the demo to connect to the DB.
-
-Then, rebuild demo docker image with a system property that points to the DB. 
-
+### List all fruits
 ```bash
--Dquarkus.datasource.reactive.url=jdbc:postgresql://<DB_SERVICE_NAME>/quarkus_test
+curl -v http://localhost:8080/fruits
 ```
-# cp2-backend-java
+
+### Create a new fruit
+```bash
+curl -v -X POST -H "Content-Type: application/json" -d '{"name":"Orange"}' http://localhost:8080/fruits
+```
+
+### Update a fruit
+```bash
+curl -v -X PUT -H "Content-Type: application/json" -d '{"name":"Granny Smith"}' http://localhost:8080/fruits/2
+```
+
+### Delete a fruit
+```bash
+curl -v -X DELETE http://localhost:8080/fruits/1
+```
+
